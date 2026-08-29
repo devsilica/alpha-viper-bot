@@ -1,3 +1,4 @@
+import { createServer } from 'node:http';
 import { Bot } from 'grammy';
 import { config } from './config/env.js';
 import { db } from './db/database.js';
@@ -157,10 +158,50 @@ bot.on('callback_query:data', async (ctx) => {
 // Auto-scan if user pastes a 32-44 char Solana base58 address directly
 bot.on('message:text', async (ctx) => {
   const text = ctx.message.text.trim();
+
   // If text looks like a Solana address (alphanumeric 32-44 chars) and not a command
-  if (!text.startsWith('/') && text.length >= 32 && text.length <= 44 && /^[1-9A-HJ-NP-za-km-z]+$/.test(text)) {
+  if (
+    !text.startsWith('/') &&
+    text.length >= 32 &&
+    text.length <= 44 &&
+    /^[1-9A-HJ-NP-za-km-z]+$/.test(text)
+  ) {
     await handleScanToken(ctx, text);
   }
+});
+
+// ==========================================
+// RENDER HEALTH SERVER
+// ==========================================
+
+const PORT = Number(process.env.PORT) || 3000;
+
+const server = createServer((req, res) => {
+  if (req.url === '/health') {
+    res.writeHead(200, {
+      'Content-Type': 'application/json'
+    });
+
+    res.end(
+      JSON.stringify({
+        status: 'ok',
+        service: 'AlphaViper AI',
+        bot: 'online'
+      })
+    );
+
+    return;
+  }
+
+  res.writeHead(200, {
+    'Content-Type': 'text/plain'
+  });
+
+  res.end('AlphaViper AI is alive 🐍');
+});
+
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`🌐 Health server listening on port ${PORT}`);
 });
 
 // ==========================================
@@ -174,7 +215,9 @@ async function bootstrap() {
 
   try {
     console.log('🚀 Starting AlphaViper AI Telegram Bot...');
+
     WhaleMonitorWorker.start(bot);
+
     await bot.start({
       onStart: (botInfo) => {
         console.log(`✅ AlphaViper Bot is live as @${botInfo.username}`);
