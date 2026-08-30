@@ -1,0 +1,4 @@
+{
+  "summary": "Automated test suite verifying daily scan persistence across restarts and UTC day roll-over",
+  "updatedAt": "2026-08-30T14:54:49.278328900Z"
+}

@@ -6,10 +6,14 @@ export const createMainMenuKeyboard = (isVip: boolean = false): InlineKeyboard =
     .text('🔍 Scan Token', 'action:scan_prompt')
     .text('🔥 Trending Alpha', 'action:trending')
     .row()
-    .text('👛 Track Whale', 'action:track_prompt')
-    .text(isVip ? '👑 VIP Active' : '⭐ Upgrade VIP', 'action:vip_info')
+    .text('⭐ My Watchlist', 'action:watchlist_view')
+    .text('⚖️ Compare Tokens', 'action:compare_prompt')
     .row()
-    .url('💬 Join Community', 'https://t.me/SolanaAlphaHub');
+    .text('🎯 Pump.fun Radar', 'action:pump_radar')
+    .text('👛 Track Whale', 'action:track_prompt')
+    .row()
+    .text('🎁 Refer & Earn', 'action:referral_info')
+    .text(isVip ? '👑 VIP Active' : '⭐ Upgrade VIP', 'action:vip_info');
 
   return keyboard;
 };
@@ -17,16 +21,21 @@ export const createMainMenuKeyboard = (isVip: boolean = false): InlineKeyboard =
 export const createTokenAuditKeyboard = (tokenAddress: string, pairUrl?: string): InlineKeyboard => {
   const jupBuyUrl = JupiterService.getSwapUrl(tokenAddress);
   const chartUrl = pairUrl || JupiterService.getDexScreenerUrl(tokenAddress);
-  const solscanUrl = JupiterService.getSolscanUrl(tokenAddress);
 
+  // Concise callback identifiers (under 64 bytes)
   return new InlineKeyboard()
     .url('⚡ Buy on Jupiter', jupBuyUrl)
     .url('📊 Chart', chartUrl)
     .row()
-    .url('🔍 Solscan', solscanUrl)
-    .text('🔄 Re-Audit', `action:rescan:${tokenAddress}`)
+    .text('⭐ Watch', `t:wt:${tokenAddress}`)
+    .text('🔔 Alert', `t:al:${tokenAddress}`)
+    .text('🔄 Rescan', `t:rs:${tokenAddress}`)
     .row()
-    .text('👑 Upgrade to VIP (Unlimited)', 'action:vip_info');
+    .text('🐋 Track Creator', `t:tr:${tokenAddress}`)
+    .text('⚖️ Compare', `t:cp:${tokenAddress}`)
+    .row()
+    .text('🎁 Refer & Earn (+5 Scans)', 'action:referral_info')
+    .text('👑 VIP Upgrade', 'action:vip_info');
 };
 
 export const createVipUpgradeKeyboard = (treasuryAddress: string): InlineKeyboard => {
@@ -35,5 +44,6 @@ export const createVipUpgradeKeyboard = (treasuryAddress: string): InlineKeyboar
     .row()
     .url('💳 Open Phantom / Solflare', `https://phantom.app/ul/browse/https://jup.ag`)
     .row()
-    .text('🔙 Back to Main Menu', 'action:main_menu');
+    .text('🎁 Earn Free Scans (/ref)', 'action:referral_info')
+    .text('🔙 Main Menu', 'action:main_menu');
 };

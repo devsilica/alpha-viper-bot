@@ -2,112 +2,123 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { config } from '../config/env.js';
 import { TokenMarketData } from './dexscreener.service.js';
 import { RugCheckResult } from './rugcheck.service.js';
+import { MultiDimensionalScoreResult } from './scoring.engine.js';
 
-export interface AiAnalysisResult {
-  alphaScore: number; // 0 to 100
-  verdict: 'STRONG_BUY' | 'HIGH_MOMENTUM' | 'DEGEN_WATCH' | 'HIGH_RISK_AVOID' | 'POTENTIAL_RUG';
-  badge: string; // e.g. "🟢 Strong Momentum"
-  summary: string;
-  keyPoints: string[];
+export interface AiVerdictResult {
+  verdictText: string;
+  whatLooksGood: string[];
+  whatLooksBad: string[];
+  whatRequiresAttention: string[];
 }
 
 export class AiAnalysisService {
   private static genAI = config.GEMINI_API_KEY ? new GoogleGenerativeAI(config.GEMINI_API_KEY) : null;
 
-  public static async analyzeToken(
+  /**
+   * Generates a grounded, evidence-based qualitative analysis.
+   * STRICT RULE: Gemini explains the deterministic score; it never invents or overrides metrics.
+   */
+  public static async generateVerdict(
     market: TokenMarketData,
-    security: RugCheckResult
-  ): Promise<AiAnalysisResult> {
-    // If Gemini key is available, generate dynamic AI reasoning
+    security: RugCheckResult,
+    scoreResult: MultiDimensionalScoreResult
+  ): Promise<AiVerdictResult> {
+    const goodPoints: string[] = [];
+    const badPoints: string[] = [];
+    const attentionPoints: string[] = [];
+
+    // Algorithmic Base Extraction from REAL verified data
+    if (!security.isMintable && !security.isFreezable) {
+      goodPoints.push('Mint & freeze authorities are permanently revoked');
+    }
+    if (security.isLpLocked && security.lpLockedPct >= 80) {
+      goodPoints.push(`${security.lpLockedPct}% of liquidity pool is locked/burned`);
+    }
+    if (market.buySellRatio24h >= 1.2) {
+      goodPoints.push(`Net positive buy pressure (${market.buySellRatio24h}:1 flow)`);
+    }
+
+    if (security.isFreezable) {
+      badPoints.push('Active freeze authority creates honeypot/blacklist risk');
+    }
+    if (security.isMintable) {
+      badPoints.push('Active mint authority enables infinite token dilution');
+    }
+    if (market.priceChange24h <= -25) {
+      badPoints.push(`Heavy 24h drawdown of ${market.priceChange24h}%`);
+    }
+    if (market.liquidityUsd < 10000) {
+      badPoints.push(`Thin liquidity ($${market.liquidityUsd.toLocaleString()}) creates high slippage`);
+    }
+
+    if (security.largestHolderPct > 15) {
+      attentionPoints.push(`Top single wallet controls ${security.largestHolderPct}% of supply`);
+    }
+    if (market.txns24h.buys + market.txns24h.sells < 100) {
+      attentionPoints.push('Low 24h trade count indicates sparse organic market depth');
+    }
+    if (scoreResult.appliedCeilings.length > 0) {
+      attentionPoints.push(`Score constrained by: ${scoreResult.appliedCeilings[0].reason}`);
+    }
+
+    let verdictText = '';
+
+    // If Gemini is configured, generate clean synthesis
     if (this.genAI && config.GEMINI_API_KEY) {
       try {
         const model = this.genAI.getGenerativeModel({
           model: 'gemini-1.5-flash',
           generationConfig: {
-            responseMimeType: 'application/json'
+            temperature: 0.2,
+            maxOutputTokens: 150
           }
         });
 
         const prompt = `
-You are AlphaViper AI, an elite crypto degen analyst and smart contract auditor on Solana.
-Analyze this token and provide a punchy, ultra-concise 2-sentence summary and alpha score for Telegram traders.
+You are AlphaViper AI, a quantitative Solana token risk analyst.
+Explain why this token received an Overall Score of ${scoreResult.overallScore}/100 (${scoreResult.overallClassification}).
+STRICT RULES:
+- Use ONLY the real metrics provided below.
+- Do NOT invent numbers, whales, or predict future prices.
+- Provide a sharp, 2-to-3 sentence analytical summary.
 
-TOKEN DATA:
-- Symbol: ${market.baseToken.symbol} (${market.baseToken.name})
-- Price: $${market.priceUsd}
-- Liquidity: $${market.liquidityUsd.toLocaleString()}
-- Market Cap / FDV: $${market.fdv.toLocaleString()}
-- 24h Volume: $${market.volume24h.toLocaleString()}
-- 5m Change: ${market.priceChange5m}% | 1h Change: ${market.priceChange1h}% | 24h Change: ${market.priceChange24h}%
-- 24h Buys/Sells: ${market.txns24h.buys} buys / ${market.txns24h.sells} sells
+DATA:
+- Symbol: $${market.baseToken.symbol}
+- Security Score: ${scoreResult.security.score}/100 (Mint: ${security.isMintable ? 'Enabled' : 'Revoked'}, Freeze: ${security.isFreezable ? 'Enabled' : 'Revoked'}, LP Lock: ${security.lpLockedPct}%)
+- Momentum Score: ${scoreResult.momentum.score}/100 (24h: ${market.priceChange24h}%, 1h: ${market.priceChange1h}%, Trajectory: ${scoreResult.momentum.trajectory})
+- Liquidity: $${market.liquidityUsd.toLocaleString()} (Slippage: ${scoreResult.liquidity.slippageRisk})
+- Holders: Largest ${security.largestHolderPct}%, Top 10: ${security.topHoldersPct}%
+- Flow: ${market.buySellRatio24h}:1 (${market.txns24h.buys} buys / ${market.txns24h.sells} sells)
+${scoreResult.appliedCeilings.length > 0 ? `- Score Limit Applied: ${scoreResult.appliedCeilings[0].reason}` : ''}
 
-SECURITY CHECK:
-- Mint Authority: ${security.isMintable ? 'DANGER: Mintable (Can dump)' : 'Revoked / Safe'}
-- Freeze Authority: ${security.isFreezable ? 'DANGER: Freezable (Honeypot risk)' : 'Revoked / Safe'}
-- LP Locked: ${security.isLpLocked ? `${security.lpLockedPct}% Locked` : 'DANGER: Unlocked LP'}
-- Top 10 Holders: ${security.topHoldersPct}%
-
-Respond ONLY with valid JSON in this exact structure:
-{
-  "alphaScore": <number between 0 and 100>,
-  "verdict": "STRONG_BUY" | "HIGH_MOMENTUM" | "DEGEN_WATCH" | "HIGH_RISK_AVOID" | "POTENTIAL_RUG",
-  "badge": "<emoji + short title, e.g. 🟢 Strong Momentum | 🟡 Degen Play | 🔴 Extreme Risk>",
-  "summary": "<2 punchy sentences highlighting momentum and risk>",
-  "keyPoints": ["<point 1>", "<point 2>"]
-}
+Output ONLY the 2-3 sentence analysis. No greetings.
 `;
 
-        const result = await model.generateContent(prompt);
-        const text = result.response.text();
+        const response = await model.generateContent(prompt);
+        const text = response.response.text().trim();
         if (text) {
-          const parsed = JSON.parse(text);
-          return {
-            alphaScore: Math.min(100, Math.max(0, Number(parsed.alphaScore || 50))),
-            verdict: parsed.verdict || 'DEGEN_WATCH',
-            badge: parsed.badge || '🟢 Active Token',
-            summary: parsed.summary || 'Solid liquidity and active trading volume.',
-            keyPoints: parsed.keyPoints || []
-          };
+          verdictText = text;
         }
       } catch (err: any) {
-        console.warn('Gemini AI generation fallback:', err.message);
+        console.warn('Gemini verdict generation note:', err.message);
       }
     }
 
-    // Algorithmic Fallback Engine (Runs even with 0 API keys)
-    let score = 70;
-    let badge = '🟢 Healthy Momentum';
-    let verdict: AiAnalysisResult['verdict'] = 'HIGH_MOMENTUM';
-
-    if (security.isFreezable || security.isMintable) {
-      score = 15;
-      badge = '🔴 DANGER: Honeypot / Mintable';
-      verdict = 'POTENTIAL_RUG';
-    } else if (market.liquidityUsd < 5000) {
-      score = 35;
-      badge = '🔴 Micro Liquidity Alert';
-      verdict = 'HIGH_RISK_AVOID';
-    } else if (security.topHoldersPct > 40) {
-      score = 45;
-      badge = '🟡 High Whale Concentration';
-      verdict = 'DEGEN_WATCH';
-    } else if (market.priceChange1h > 25 && market.volume24h > 50000) {
-      score = 88;
-      badge = '🚀 Explosive Breakout';
-      verdict = 'STRONG_BUY';
+    if (!verdictText) {
+      if (scoreResult.overallScore >= 75) {
+        verdictText = `Strong structural setup with revoked contract authorities, $${market.liquidityUsd.toLocaleString()} liquidity, and positive buy flow (${market.buySellRatio24h}:1).`;
+      } else if (scoreResult.overallScore >= 45) {
+        verdictText = `Standard contract parameters, but moderate liquidity ($${market.liquidityUsd.toLocaleString()}) and ${market.priceChange24h <= 0 ? 'downward' : 'choppy'} momentum suggest disciplined entry sizing.`;
+      } else {
+        verdictText = `High risk profile driven by ${security.isFreezable || security.isMintable ? 'unrevoked dangerous authorities' : 'heavy price drawdown and elevated sell dominance'}. Caution advised.`;
+      }
     }
 
-    const buyRatio = market.txns24h.sells > 0 ? (market.txns24h.buys / market.txns24h.sells).toFixed(1) : '1.0';
-
     return {
-      alphaScore: score,
-      verdict,
-      badge,
-      summary: `Clean contract with ${security.isFreezable ? 'active freeze risk' : 'revoked authorities'}. Buy/sell ratio at ${buyRatio}:1 with $${market.liquidityUsd.toLocaleString()} liquidity.`,
-      keyPoints: [
-        `Top 10 holders control ${security.topHoldersPct}%`,
-        `24h volume at $${market.volume24h.toLocaleString()}`
-      ]
+      verdictText,
+      whatLooksGood: goodPoints.slice(0, 3),
+      whatLooksBad: badPoints.slice(0, 3),
+      whatRequiresAttention: attentionPoints.slice(0, 3)
     };
   }
 }

@@ -1,4 +1,4 @@
 {
-  "summary": "Database engine for user tiers, VIP expiry, tracked wallets, and payment transactions",
-  "updatedAt": "2026-08-29T13:28:35.820788300Z"
+  "summary": "Update database.ts with TokenScanSnapshots and Watchlist support",
+  "updatedAt": "2026-08-30T15:55:42.539520500Z"
 }

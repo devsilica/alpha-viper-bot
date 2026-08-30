@@ -1,4 +1,4 @@
 {
-  "summary": "RugCheck API integration for token contract security and audit checks",
-  "updatedAt": "2026-08-29T13:28:48.046033500Z"
+  "summary": "Upgrade rugcheck.service.ts with known vs unknown holder concentration separation",
+  "updatedAt": "2026-08-30T16:43:34.753860500Z"
 }

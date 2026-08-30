@@ -1,0 +1,4 @@
+{
+  "summary": "Fix callback_data lengths in token-alert.worker.ts",
+  "updatedAt": "2026-08-30T14:37:20.410184500Z"
+}

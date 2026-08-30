@@ -1,4 +1,4 @@
 {
-  "summary": "Background worker for whale wallet activity alerts",
-  "updatedAt": "2026-08-29T13:29:45.232791Z"
+  "summary": "Fix callback_data lengths in whale-monitor.worker.ts",
+  "updatedAt": "2026-08-30T14:37:12.254137600Z"
 }

@@ -7,23 +7,24 @@ export const handleTrackWallet = async (ctx: Context) => {
   if (!userId) return;
 
   const text = ctx.message?.text || '';
-  const parts = text.split(' ');
+  const parts = text.split(' ').filter(p => p.trim().length > 0);
 
-  // If no wallet provided, show current watchlist
+  // If no wallet provided, show active watchlist with on-chain intelligence
   if (parts.length < 2) {
     const userWallets = db.getTrackedWallets(userId);
-    let msg = `👛 <b>WHALE & SMART MONEY TRACKER</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    let msg = `👛 <b>WALLET INTELLIGENCE & TRACKER</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
 
     if (userWallets.length === 0) {
       msg += `You are not tracking any wallets yet.\n\n`;
-      msg += `<b>How to track a whale:</b>\n<code>/track &lt;Solana_Wallet_Address&gt; [Label]</code>\n\n`;
-      msg += `<i>Example:</i>\n<code>/track 5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1 SmartWhale#1</code>`;
+      msg += `<b>How to track a wallet:</b>\n<code>/track &lt;Solana_Wallet_Address&gt; [Label]</code>\n\n`;
+      msg += `<i>Example:</i>\n<code>/track 5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1 Whale#1</code>\n`;
+      msg += `\nAlphaViper will alert you the moment this wallet executes on-chain swaps!`;
     } else {
-      msg += `<b>Your Active Watchlist (${userWallets.length} wallets):</b>\n\n`;
+      msg += `<b>Active Monitored Wallets (${userWallets.length}):</b>\n\n`;
       userWallets.forEach((w, i) => {
-        msg += `${i + 1}. <b>${w.label || 'Whale Wallet'}</b>\n   <code>${w.walletAddress}</code>\n`;
+        msg += `${i + 1}. <b>${w.label || 'Whale Wallet'}</b>\n   <code>${w.walletAddress}</code>\n   Added: ${new Date(w.addedAt).toLocaleDateString()}\n\n`;
       });
-      msg += `\n<i>You will receive instant alerts when these wallets buy/sell tokens.</i>\n`;
+      msg += `<i>You will receive instant alerts when these wallets buy or sell tokens.</i>\n`;
       msg += `\nTo remove: <code>/untrack &lt;WalletAddress&gt;</code>`;
     }
 
@@ -36,27 +37,78 @@ export const handleTrackWallet = async (ctx: Context) => {
   }
 
   const walletAddress = parts[1].trim();
-  const label = parts.slice(2).join(' ') || 'Whale Wallet';
+  const label = parts.slice(2).join(' ') || 'Tracked Wallet';
 
-  // Check balance on-chain
-  const balance = await SolanaService.getWalletBalance(walletAddress);
+  const loading = await ctx.reply(`👛 <i>Analyzing on-chain transactions & balance for <code>${walletAddress.slice(0, 8)}...</code></i>`, {
+    parse_mode: 'HTML'
+  });
 
-  const added = db.addTrackedWallet(userId, walletAddress, label);
-  if (!added) {
-    await ctx.reply(`⚠️ You are already tracking this wallet: <code>${walletAddress}</code>`, {
-      parse_mode: 'HTML'
-    });
-    return;
+  try {
+    // 1. Fetch On-chain Balance
+    const balance = await SolanaService.getWalletBalance(walletAddress);
+
+    // 2. Fetch Recent Signatures
+    const sigs = await SolanaService.getRecentSignatures(walletAddress, 5);
+
+    // 3. Classify Wallet Profile
+    let walletProfile = '🎯 Active Trader';
+    if (balance >= 50) {
+      walletProfile = '🐳 Solana Whale';
+    } else if (balance < 0.5 && sigs.length > 0) {
+      walletProfile = '⚡ Fast Sniper Wallet';
+    } else if (sigs.length === 0) {
+      walletProfile = '📦 Low-Activity Storage Wallet';
+    }
+
+    const added = db.addTrackedWallet(userId, walletAddress, label, sigs[0]);
+    if (!added) {
+      await ctx.api.editMessageText(
+        ctx.chat!.id,
+        loading.message_id,
+        `⚠️ You are already tracking this wallet: <code>${walletAddress}</code>`,
+        { parse_mode: 'HTML' }
+      );
+      return;
+    }
+
+    const intelMsg = `
+✅ <b>WALLET ADDED TO WATCHLIST!</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+🏷️ <b>Label:</b> <b>${label}</b>
+📍 <b>Address:</b> <code>${walletAddress}</code>
+
+📊 <b>WALLET PROFILE:</b>
+• <b>Classification:</b> <b>${walletProfile}</b>
+• <b>SOL Balance:</b> <b>${balance.toFixed(2)} SOL</b> (~$${Math.round(balance * 180).toLocaleString()})
+• <b>Recent Activity:</b> ${sigs.length} on-chain signatures recorded
+
+🔔 <i>AlphaViper is now monitoring this wallet 24/7 and will send you real-time alerts whenever it swaps tokens!</i>
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+    `;
+
+    const keyboard = new InlineKeyboard()
+      .url('🧾 View on Solscan', `https://solscan.io/account/${walletAddress}`)
+      .row()
+      .text('👛 View Watchlist', 'action:track_prompt');
+
+    await ctx.api.editMessageText(
+      ctx.chat!.id,
+      loading.message_id,
+      intelMsg.trim(),
+      {
+        parse_mode: 'HTML',
+        reply_markup: keyboard
+      }
+    );
+  } catch (err: any) {
+    console.error('Track handler error:', err);
+    await ctx.api.editMessageText(
+      ctx.chat!.id,
+      loading.message_id,
+      `❌ Error profiling wallet: ${err.message}`,
+      { parse_mode: 'HTML' }
+    );
   }
-
-  await ctx.reply(
-    `✅ <b>Wallet Added to Watchlist!</b>\n\n` +
-    `🏷️ <b>Label:</b> ${label}\n` +
-    `📍 <b>Address:</b> <code>${walletAddress}</code>\n` +
-    `💰 <b>Current Balance:</b> ${balance.toFixed(2)} SOL\n\n` +
-    `🔔 <i>AlphaViper will alert you immediately when this wallet executes on-chain swaps!</i>`,
-    { parse_mode: 'HTML' }
-  );
 };
 
 export const handleUntrackWallet = async (ctx: Context) => {

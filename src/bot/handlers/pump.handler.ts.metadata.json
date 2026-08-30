@@ -1,0 +1,4 @@
+{
+  "summary": "Define renderProgressBar locally in pump.handler.ts to decouple and fix export issue",
+  "updatedAt": "2026-08-30T17:01:44.825908Z"
+}
