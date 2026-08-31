@@ -1,3 +1,4 @@
+import { createServer } from 'node:http';
 import { Bot } from 'grammy';
 import { config } from './config/env.js';
 import { db } from './db/database.js';
@@ -338,6 +339,26 @@ bot.on('message:text', async (ctx) => {
 });
 
 // ==========================================
+// RENDER HTTP HEALTH CHECK SERVER
+// ==========================================
+
+const PORT = Number(process.env.PORT) || 3000;
+
+const healthServer = createServer((req, res) => {
+  if (req.url === '/health' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok' }));
+    return;
+  }
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('AlphaViper AI is active 🐍');
+});
+
+healthServer.listen(PORT, '0.0.0.0', () => {
+  console.log(`🌐 Render Health Server listening on port ${PORT}`);
+});
+
+// ==========================================
 // START BOT & WORKERS
 // ==========================================
 
@@ -382,4 +403,3 @@ async function bootstrap() {
 }
 
 bootstrap();
-
