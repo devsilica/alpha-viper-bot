@@ -81,28 +81,70 @@ bot.command('start', async (ctx) => {
   }
 
   const welcomeMessage = `
-🐍 <b>WELCOME TO ALPHAVIPER AI</b> ⚡
-<i>Your Solana Token Intelligence Terminal inside Telegram.</i>
+🐍 <b>ALPHAVIPER AI</b>
+<b>SOLANA TOKEN INTELLIGENCE TERMINAL</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
-Discover tokens, evaluate smart contract vulnerabilities, assess liquidity depth, and monitor on-chain flow — all from one interface.
+Stop guessing. Investigate before you trade.
 
-🛡️ <b>Multi-Dimensional Scoring:</b> Independent Security, Momentum, Liquidity, Holders, and Flow metrics.
-🔄 <b>Delta Intelligence:</b> Tracks real-time changes between scans.
-⚖️ <b>Token Comparison:</b> Compare two tokens head-to-head.
-⭐ <b>Personal Watchlist:</b> Save and track your high-conviction plays.
-🔔 <b>24/7 Smart Alerts:</b> Early warning for volume spikes & liquidity shifts.
-🐋 <b>Wallet Intelligence:</b> On-chain profiling & whale movement alerts.
+AlphaViper analyzes Solana tokens using market data, liquidity, holder distribution, contract/security signals, trading flow, and risk intelligence — then turns the evidence into a clear intelligence report.
 
-👇 <b>Core Terminal Commands:</b>
-• <code>/scan &lt;CA&gt;</code> — Full multi-dimensional intelligence report
-• <code>/compare &lt;CA1&gt; &lt;CA2&gt;</code> — Head-to-head token comparison
-• <code>/watch &lt;CA&gt;</code> — Bookmark token to watchlist
-• <code>/watchlist</code> — View all monitored tokens
-• <code>/alert &lt;CA&gt;</code> — Subscribe to 24/7 breakout alerts
-• <code>/trending</code> — Discovery alpha ranked by quality
-• <code>/track &lt;Wallet&gt;</code> — Monitor whale wallet activity
-• <code>/ref</code> — Earn +5 free scans per invited friend
-• <code>/vip</code> — Upgrade to Unlimited VIP terminal access
+🎯 <b>WHAT YOU CAN DO</b>
+🔍 <code>/scan</code>
+Deep token intelligence report
+Security • Momentum • Liquidity • Holders • Flow • Risk
+
+⚖️ <code>/compare</code>
+Compare two tokens and identify the stronger setup.
+
+⭐ <code>/watch</code>
+Save a token and monitor its changing profile.
+
+📋 <code>/watchlist</code>
+See your monitored tokens and live signals.
+
+🔔 <code>/alert</code>
+Get early warnings for major price, volume and liquidity changes.
+
+🔥 <code>/trending</code>
+Discover tokens ranked by setup quality and risk.
+
+🚀 <code>/pump</code>
+Monitor Pump.fun opportunities and bonding-curve activity.
+
+🐋 <code>/track</code>
+Analyze wallets and monitor whale activity.
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+🧠 <b>WHY ALPHAVIPER?</b>
+A clean contract does NOT automatically mean a good trade.
+
+AlphaViper separates:
+🛡️ Security
+📈 Momentum
+💧 Liquidity
+👥 Holder Distribution
+📊 Market Flow
+🐋 Wallet Intelligence
+
+Then applies risk controls so dangerous market conditions cannot simply be hidden behind a high security score.
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+🆓 <b>START FREE</b>
+Use <code>/scan &lt;CA&gt;</code> to investigate your first token.
+Your free access lets you experience the intelligence terminal before upgrading.
+
+👑 <b>VIP — UNLIMITED INTELLIGENCE</b>
+Unlock:
+• Unlimited token scans
+• Advanced intelligence
+• Whale/wallet monitoring
+• Smart alerts
+• Full terminal features
+• Priority access to advanced AlphaViper signals
+
+💎 <b>VIP ACCESS:</b> ${config.VIP_PRICE_SOL} SOL
+Use <code>/vip</code> to see the upgrade process.
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ <i>AlphaViper provides intelligence and risk analysis — not financial advice.</i>
+🐍 <b>Investigate first. Trade smarter.</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
   `;
 

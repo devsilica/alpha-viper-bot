@@ -3,17 +3,14 @@ import { JupiterService } from '../../services/jupiter.service.js';
 
 export const createMainMenuKeyboard = (isVip: boolean = false): InlineKeyboard => {
   const keyboard = new InlineKeyboard()
-    .text('🔍 Scan Token', 'action:scan_prompt')
-    .text('🔥 Trending Alpha', 'action:trending')
+    .text('🔍 SCAN A TOKEN', 'action:scan_prompt')
+    .text('🔥 TRENDING', 'action:trending')
     .row()
-    .text('⭐ My Watchlist', 'action:watchlist_view')
-    .text('⚖️ Compare Tokens', 'action:compare_prompt')
+    .text('⚖️ COMPARE', 'action:compare_prompt')
+    .text('🐋 TRACK WALLET', 'action:track_prompt')
     .row()
-    .text('🎯 Pump.fun Radar', 'action:pump_radar')
-    .text('👛 Track Whale', 'action:track_prompt')
-    .row()
-    .text('🎁 Refer & Earn', 'action:referral_info')
-    .text(isVip ? '👑 VIP Active' : '⭐ Upgrade VIP', 'action:vip_info');
+    .text('⭐ WATCHLIST', 'action:watchlist_view')
+    .text(isVip ? '👑 VIP ACTIVE' : '👑 GET VIP', 'action:vip_info');
 
   return keyboard;
 };
